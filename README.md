@@ -42,3 +42,14 @@ npm run dev
 
 Open your browser and navigate to: http://localhost:5173/
 
+## PolarCore mission-control prototype
+
+The dashboard now opens on an Antarctic mission-control view for SIH-26060 and includes:
+
+- Bharati/Maitri switching, station health, energy, environment, personnel, logistics, and centralized alerts
+- The existing interactive Three.js station twin with asset inspection and smooth camera focus
+- Local rule-based Station AI at `POST /api/assistant` (no external LLM key required)
+- Emergency simulations for generator failure and extreme weather
+- 24-hour energy visualization and 30-day historical analytics
+
+The geospatial panel is Mapbox-ready: connect a Mapbox token to replace the visual layer without changing the telemetry contract. Demo values remain usable when FastAPI is unavailable.

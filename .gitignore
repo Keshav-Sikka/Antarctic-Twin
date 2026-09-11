@@ -1,0 +1,22 @@
+# Node dependencies & Vite build outputs
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# Python environments & caches
+backend/venv/
+backend/__pycache__/
+backend/*/__pycache__/
+*.py[cod]
+*$py.class
+backend/.pytest_cache/
+.env
+
+# Operating System & IDE junk
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

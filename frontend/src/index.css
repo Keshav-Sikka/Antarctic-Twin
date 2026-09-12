@@ -167,6 +167,7 @@ body, #root {
   .polar-app .top-24 .telemetry-card svg { height: 20px; }
   .polar-app .top-24 .telemetry-card .mb-1\.5 { margin-bottom: 4px; }
   .polar-app .top-24 .pointer-events-auto:last-child { display: block; }
+  .polar-app .top-24 .telemetry-card { display: none; }
   .polar-app .bottom-6.right-8 { max-width: calc(100% - 24px); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 8px; }
   .polar-app .contingency-widget { left: 12px; right: 12px; bottom: 42px; max-width: none; }
   .polar-app .contingency-widget .jarvis-panel { padding: 7px; }

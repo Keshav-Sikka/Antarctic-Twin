@@ -347,7 +347,7 @@ export default function App() {
             ))}
           </div>
         </div>
-        <div className="timeline-widget jarvis-panel px-2.5 py-2 text-[8px] tracking-widest text-cyan-300">
+        {view === 'dashboard' && <div className="timeline-widget jarvis-panel px-2.5 py-2 text-[8px] tracking-widest text-cyan-300">
           <div className="timeline-header flex items-center justify-between gap-3 mb-1">
             <span className="text-cyan-500">SIMULATED LIVE TIMELINE</span>
             <span className="text-emerald-400">{season}</span>
@@ -383,7 +383,7 @@ export default function App() {
             </select>
           </div>
           <div className="timeline-role-description mt-1 text-[7px] text-purple-300/70">{roleDescription}</div>
-        </div>
+        </div>}
         
         {view === 'twin' && (
           <button 

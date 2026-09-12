@@ -113,6 +113,46 @@ directive for a selected subsystem.
 PolarCore tracks 16 station domains, logistics depletion runways, risk
 explainability, and local rules-based Copilot queries.
 
+### 7. Simulated live timeline
+
+The dashboard includes a demonstration timeline for rehearsing Antarctic
+operations across changing conditions:
+
+- Play/pause simulated station time.
+- Run the timeline at `1X`, `10X`, `60X`, or `240X`.
+- Derive temperature, wind, visibility, snow accumulation, energy demand,
+  generator output, fuel reserve, and equipment health from the simulated
+  date and active contingency.
+- Use the timeline to demonstrate day/night load changes and winter stress
+  without requiring a live weather API.
+
+### 8. Event-driven alert center
+
+Alerts are separated from the 3D experience so normal warnings do not
+interrupt the operator. The Data Core lists cause, impact, and recommended
+action for fuel, food, medical supplies, personnel check-in, generator health,
+weather, and contingency events. Only new critical anomalies or active
+emergency scenarios trigger the prominent popup alert.
+
+### 9. Decision-support operations suite
+
+The Data Core includes judge-facing operational tools:
+
+- **Weather-aware task scheduler:** restricts exterior maintenance when wind or
+  visibility crosses the safety threshold and recommends indoor work.
+- **Fuel burn-rate predictor:** estimates remaining runway from fuel reserves
+  and current heating load.
+- **Madrid Protocol demonstration export:** downloads a CSV report containing
+  simulated fuel, energy, environment, and alert metrics.
+- **Shift handover log:** stores incoming-shift notes locally with `LOW`,
+  `MEDIUM`, or `CRITICAL` priority.
+- **Role-view prototype:** switches between Station Leader, NCPOR HQ, and
+  Researcher perspectives. This is a presentation feature, not production
+  authentication or authorization.
+
+All analytics and reports are explicitly demonstration outputs based on
+simulated telemetry.
+
 ## Quick Q&A
 
 ### Are we running an external LLM for the AI Copilot and risk predictions?
@@ -170,7 +210,23 @@ The 3D station view is the primary operator experience:
   freeze.
 - Open **Data Core** for the complete station data view, including energy,
   environment, alerts, logistics, personnel, Station AI, causal intelligence,
-  and what-if projections.
+  what-if projections, timeline controls, and the operations suite.
+
+## Demo Flow
+
+For a concise judge demonstration:
+
+1. Start in the **AR Spatial Twin** view and switch between **BHARATI** and
+   **MAITRI**.
+2. Select `60X` on the simulated timeline to show telemetry changing over
+   Antarctic time.
+3. Trigger **BLIZZARD** or **GEN FAIL** from the compact Contingency Vector
+   and show the event-driven critical alert.
+4. Open **Data Core** to explain the weather scheduler, fuel runway forecast,
+   causal graph, and recommended action.
+5. Change the role to **NCPOR HQ** and export the simulated compliance CSV.
+6. Add a critical note in the **Shift Handover Log** to demonstrate continuity
+   between station shifts.
 
 ## Mobile and Android
 
@@ -194,6 +250,10 @@ cd android
 
 The generated APK is written to
 `frontend/android/app/build/outputs/apk/debug/app-debug.apk`.
+
+The Capacitor app configuration is stored in
+`frontend/capacitor.config.json`. The Android build is a prototype wrapper
+around the same responsive web dashboard.
 
 ## Backend API
 

@@ -1,74 +1,156 @@
-# 🇦🇶 POLARCORE: Antarctic Digital Twin & Mission Control
+# 🇦🇶 PolarCore: Antarctic Digital Twin & Mission Control
 
-An edge-native 3D AR Digital Twin and remote telemetry operations dashboard for India's Antarctic research stations (**Bharati** and **Maitri**). Built for **Smart India Hackathon 2026 (Problem Statement ID: SIH26060)** under the **Ministry of Earth Sciences (MoES) / NCPOR**.
+An edge-native 3D digital twin and remote telemetry operations dashboard for
+India's Antarctic research stations, **Bharati** and **Maitri**. Built for
+**Smart India Hackathon 2026 (Problem Statement ID: SIH26060)** under the
+**Ministry of Earth Sciences (MoES) / NCPOR**.
 
----
-
-## ⚡ Quick Start & Installation
+## Quick Start
 
 ### Prerequisites
-- **Python 3.10+**
-- **Node.js 18+** & **npm**
 
----
+- Python 3.10 or newer
+- Node.js 18 or newer
+- npm
 
-### 1. Backend Engine (FastAPI & Telemetry WebSocket)
-Open a terminal in the project root:
+### 1. Start the backend
+
+From the project root:
 
 ```bash
 cd backend
 python -m venv venv
+```
 
-# Windows:
+Activate the virtual environment:
+
+**macOS/Linux**
+
+```bash
+source venv/bin/activate
+```
+
+**Windows**
+
+```powershell
 venv\Scripts\activate
-# Mac/Linux:
-# source venv/bin/activate
+```
 
+Install dependencies and start the FastAPI telemetry server:
+
+```bash
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
+```
 
-Backend API will start at: http://localhost:8000
+The backend is available at <http://localhost:8000>.
 
-Interactive API Docs: http://localhost:8000/docs
+Interactive API documentation is available at <http://localhost:8000/docs>.
 
-### 2. Frontend Application (React, Three.js, Tailwind HUD)
-Open a second terminal in the project root:
+### 2. Start the frontend
 
-``` bash
+Open a second terminal from the project root:
 
+```bash
 cd frontend
 npm install
 npm run dev
+```
 
-Open your browser and navigate to: http://localhost:5173/
+Open the dashboard at <http://localhost:5173>.
 
-### 🧭 System Architecture & Features
+## System Architecture & Features
 
-1) AR Spatial Twin: Interactive edge-to-edge Three.js 3D models of Bharati (aerodynamic cantilevered design on Larsemann Hills snow plateau) and Maitri (modular U-shaped layout on Schirmacher Oasis rocky permafrost).
+### 1. AR spatial twin
 
-2) Subsystem Telemetry HUD: Real-time micro-fluctuating sensor metrics and animated seismometer line graphs for Diesel Gen, Fuel Tanks, Snow Melter, and Life Support HVAC.
+Interactive Three.js 3D models represent both station environments:
 
-3) Deterministic Causal Engine: Multi-domain causal inference and Z-score outlier detection simulating cascading failures (thermal load, weather stress, fuel depletion) without cloud latency.
+- **Bharati:** An aerodynamic, cantilevered design on the Larsemann Hills snow
+  plateau.
+- **Maitri:** A modular U-shaped layout on the Schirmacher Oasis rocky
+  permafrost.
 
-4) What-If Contingency Engine: Instant simulation of polar crises (BLIZZARD 72KT, THERMAL RUNAWAY, LINE FREEZE, SUPPLY DELAY).
+### 2. Subsystem telemetry HUD
 
-5) Emergency Directive Dispatch: 2D technical schematic cutaways with override controls executing instant mechanical recovery protocols.
+The dashboard displays live simulated telemetry and animated line graphs for:
 
-6) Data Core: Enterprise mission control tracking 16 station domains, logistics depletion runways, and local rules-based Copilot queries.
+- Diesel generators
+- Fuel tanks
+- Snow melter and recycling systems
+- Life-support HVAC
 
----
+### 3. Deterministic causal engine
 
-### Quick Q&A
+The data engine models cascading operational effects across station domains,
+including thermal load, weather stress, energy demand, and fuel depletion. It
+also supports statistical Z-score outlier detection without requiring cloud
+latency.
 
-Q1: "Are we running an external LLM for the AI Copilot and risk predictions?"
-> A: No. Antarctica operates over high-latency, 256 kbps satellite links that cannot stream tokens. Our intelligence runs 100% locally via deterministic causal graphs and statistical Z-score outlier detection ($Z \ge 3.0$), computing fuel runway and risk scores in under 5 milliseconds with zero internet dependency.
+### 4. What-if contingency engine
 
-Q2: "How does this 3D model scale over poor Antarctic satellite bandwidth?"
-> A: We do not stream 3D pixels or video. The Three.js engine and CAD geometry run entirely inside the client browser cache. The satellite link transmits only tiny, delta-compressed JSON telemetry packets (< 1.5 KB/s), consuming less than 5% of a standard 256 kbps polar link.
+The prototype includes simulations for polar contingencies such as:
 
-Q3: "What happens if the satellite link drops entirely during a blizzard?"
-> A: The system operates on an offline-first Store-and-Forward architecture (Project Mesh-Zero). Local PLCs buffer all sensor readings on-station; once satellite handshake re-establishes, missing historical data is backfilled using a conflict-free merge window.
+- Blizzard conditions at 72 knots
+- Thermal runaway
+- Fuel-line freeze
+- Supply delay
 
-Q4: "Why procedural geometry instead of pre-rendered 3D assets?"
-> A: Procedural WebGL enables instant loading with zero network overhead, programmatic cutaways (smart roof fading on camera proximity), and real-time mesh color shifts linked to dynamic sensor telemetry.
+### 5. Emergency directive dispatch
 
+Operators can inspect 2D technical schematic cutaways and dispatch an override
+directive for a selected subsystem.
+
+### 6. Data core
+
+PolarCore tracks 16 station domains, logistics depletion runways, risk
+explainability, and local rules-based Copilot queries.
+
+## Quick Q&A
+
+### Are we running an external LLM for the AI Copilot and risk predictions?
+
+No. Antarctic operations may rely on high-latency, 256 kbps satellite links,
+so the prototype runs its intelligence locally using deterministic causal
+graphs and statistical Z-score outlier detection (`Z ≥ 3.0`). Fuel runway and
+risk scores can be calculated without an internet connection.
+
+### How does the 3D model scale over poor Antarctic satellite bandwidth?
+
+The application does not stream 3D pixels or video. Three.js renders the
+geometry in the client browser, while the station link transmits only compact
+JSON telemetry packets.
+
+### What happens if the satellite link drops during a blizzard?
+
+The system follows an offline-first store-and-forward approach called
+**Project Mesh-Zero**. Local station services can buffer sensor readings, then
+backfill missing telemetry when the satellite handshake is restored.
+
+### Why use procedural geometry instead of pre-rendered 3D assets?
+
+Procedural WebGL geometry reduces network overhead, supports programmatic
+cutaways such as roof fading during close inspection, and allows mesh colors to
+change with subsystem telemetry.
+
+## Project Structure
+
+```text
+.
+├── backend/
+│   ├── main.py
+│   └── requirements.txt
+├── docs/
+│   └── SENSOR_SCHEMA.md
+└── frontend/
+    ├── public/
+    │   └── blueprints/
+    └── src/
+        ├── components/
+        ├── App.jsx
+        └── index.css
+```
+
+## License
+
+This project is a Smart India Hackathon prototype for demonstration and
+evaluation purposes.

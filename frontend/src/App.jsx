@@ -348,7 +348,7 @@ export default function App() {
           </div>
         </div>
         <div className="timeline-widget jarvis-panel px-2.5 py-2 text-[8px] tracking-widest text-cyan-300">
-          <div className="flex items-center justify-between gap-3 mb-1">
+          <div className="timeline-header flex items-center justify-between gap-3 mb-1">
             <span className="text-cyan-500">SIMULATED LIVE TIMELINE</span>
             <span className="text-emerald-400">{season}</span>
           </div>
@@ -373,7 +373,7 @@ export default function App() {
               <option value="240">240X</option>
             </select>
           </div>
-          <div className="mt-2 flex items-center gap-2 border-t border-cyan-900/50 pt-2">
+          <div className="timeline-role mt-2 flex items-center gap-2 border-t border-cyan-900/50 pt-2">
             <UserCog size={10} className="text-purple-400" />
             <span className="text-cyan-600">ROLE</span>
             <select value={role} onChange={(event) => setRole(event.target.value)} className="timeline-speed flex-1 bg-black/60 border border-cyan-800 text-purple-200 px-1 py-1 outline-none">
@@ -382,7 +382,7 @@ export default function App() {
               <option>RESEARCHER</option>
             </select>
           </div>
-          <div className="mt-1 text-[7px] text-purple-300/70">{roleDescription}</div>
+          <div className="timeline-role-description mt-1 text-[7px] text-purple-300/70">{roleDescription}</div>
         </div>
         
         {view === 'twin' && (

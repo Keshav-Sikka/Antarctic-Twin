@@ -151,13 +151,21 @@ body, #root {
   .polar-app .top-6.right-8 .station-selector { padding: 3px; }
   .polar-app .top-6.right-8 .station-selector-icon { display: none; }
   .polar-app .top-6.right-8 .station-choice { min-width: 0; padding: 7px 9px; font-size: 8px; }
-  .polar-app .timeline-widget { position: fixed; top: 124px; right: 12px; width: calc(100vw - 24px); padding: 7px; }
+  .polar-app .timeline-widget { position: fixed; top: 116px; right: 12px; width: 196px; padding: 6px; }
   .polar-app .timeline-widget > div:first-child { gap: 8px; }
   .polar-app .timeline-widget .text-cyan-100 { font-size: 7px; }
+  .polar-app .timeline-header span:first-child { font-size: 7px; white-space: nowrap; }
+  .polar-app .timeline-header span:last-child { display: none; }
+  .polar-app .timeline-widget > div:nth-child(2) { gap: 4px; }
+  .polar-app .timeline-widget .timeline-role { margin-top: 5px; padding-top: 5px; }
+  .polar-app .timeline-role-description { display: none; }
   .emergency-alert-popup { top: 8.5rem; width: calc(100vw - 24px); padding: 11px; }
   .polar-app .w-\[17rem\] { width: calc(100% - 24px); left: 12px; right: 12px; }
-  .polar-app .top-24 { top: 228px; max-height: calc(100dvh - 390px); overflow-y: auto; padding-right: 2px; }
-  .polar-app .top-24 .jarvis-panel { padding: 10px; }
+  .polar-app .top-24 { top: 224px; left: auto; right: 12px; width: 184px; max-height: none; overflow: visible; padding-right: 0; }
+  .polar-app .top-24 .jarvis-panel { padding: 7px; }
+  .polar-app .top-24 .telemetry-card { width: 184px; }
+  .polar-app .top-24 .telemetry-card svg { height: 20px; }
+  .polar-app .top-24 .telemetry-card .mb-1\.5 { margin-bottom: 4px; }
   .polar-app .top-24 .pointer-events-auto:last-child { display: block; }
   .polar-app .bottom-6.right-8 { max-width: calc(100% - 24px); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 8px; }
   .polar-app .contingency-widget { left: 12px; right: 12px; bottom: 42px; max-width: none; }
@@ -194,4 +202,7 @@ body, #root {
   .polar-app .top-6.right-8 .station-link-status { display: none; }
   .dashboard-scroll-wrap { padding-top: 132px; }
   .machine-dock { bottom: 145px; }
+  .polar-app .timeline-widget { top: 114px; right: 10px; width: 184px; }
+  .polar-app .top-24 { top: 220px; right: 10px; }
+  .polar-app .top-24 .telemetry-card { width: 174px; }
 }

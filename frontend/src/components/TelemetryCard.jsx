@@ -24,7 +24,7 @@ export default function TelemetryCard({ machine, allKeys, activeKey, onSelectKey
   const strokeHex = isCritical ? '#ff0055' : '#00d2ff';
 
   return (
-    <div className="jarvis-panel p-2 w-56 text-[8px]">
+    <div className="telemetry-card jarvis-panel p-2 w-56 text-[8px]">
       <div className="flex items-center justify-between mb-1.5 border-b border-cyan-500/40 pb-1">
         <div className="flex items-center space-x-1.5">
           <button onClick={() => onSelectKey(allKeys[(currentIndex - 1 + allKeys.length) % allKeys.length])} className="text-cyan-500 hover:text-cyan-300 bg-black/40 border border-cyan-900/50 p-0.5 rounded">

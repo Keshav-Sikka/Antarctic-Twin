@@ -462,6 +462,18 @@ export default function App() {
             </div>
           </div>
 
+          <div className="machine-dock pointer-events-auto" aria-label="Station equipment selector">
+            {MACHINE_KEYS.map((id) => (
+              <button
+                key={id}
+                onClick={() => { setIsStationOverview(false); setSelectedMachineId(id); setIsModalOpen(true); }}
+                className={selectedMachineId === id ? 'active' : ''}
+              >
+                {id === 'gen1' ? 'GENERATOR' : id === 'water' ? 'SNOW MELTER' : id === 'hvac' ? 'HVAC' : 'FUEL'}
+              </button>
+            ))}
+          </div>
+
           {isModalOpen && (
             <BlueprintModal 
               machine={currentMachine} 

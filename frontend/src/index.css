@@ -129,6 +129,7 @@ body, #root {
 .emergency-alert-icon { display: grid; place-items: center; min-width: 30px; height: 30px; border: 1px solid currentColor; }
 .operations-grid { margin-top: 17px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .operations-grid .jarvis-panel { min-width: 0; }
+.machine-dock { display: none; }
 @keyframes alert-pulse { from { opacity: .86; } to { opacity: 1; } }
 
 /* Phone layout: preserve the HUD while allowing every surface to fit the viewport. */
@@ -141,7 +142,7 @@ body, #root {
   .polar-app .top-24 { top: 112px; }
   .polar-app .bottom-6 { bottom: max(10px, env(safe-area-inset-bottom)); }
   .polar-app .top-6.left-8 { transform: scale(.82); transform-origin: top left; }
-  .polar-app .top-6.left-1\/2 { top: 58px; width: calc(100% - 24px); left: 12px; transform: none; justify-content: center; gap: 6px; }
+  .polar-app .top-6.left-1\/2 { top: 74px; width: calc(100% - 24px); left: 12px; transform: none; justify-content: center; gap: 6px; }
   .polar-app .top-6.left-1\/2 button { min-width: 0; flex: 1; padding: 8px 6px; font-size: 8px; white-space: nowrap; }
   .polar-app .top-6.right-8 { top: 10px; }
   .polar-app .top-6.right-8 > div { gap: 7px; }
@@ -150,19 +151,23 @@ body, #root {
   .polar-app .top-6.right-8 .station-selector { padding: 3px; }
   .polar-app .top-6.right-8 .station-selector-icon { display: none; }
   .polar-app .top-6.right-8 .station-choice { min-width: 0; padding: 7px 9px; font-size: 8px; }
-  .polar-app .timeline-widget { width: min(23rem, calc(100vw - 24px)); padding: 7px; }
+  .polar-app .timeline-widget { position: fixed; top: 124px; right: 12px; width: calc(100vw - 24px); padding: 7px; }
   .polar-app .timeline-widget > div:first-child { gap: 8px; }
   .polar-app .timeline-widget .text-cyan-100 { font-size: 7px; }
   .emergency-alert-popup { top: 8.5rem; width: calc(100vw - 24px); padding: 11px; }
   .polar-app .w-\[17rem\] { width: calc(100% - 24px); left: 12px; right: 12px; }
-  .polar-app .top-24 { max-height: calc(100dvh - 155px); overflow-y: auto; padding-right: 2px; }
+  .polar-app .top-24 { top: 228px; max-height: calc(100dvh - 390px); overflow-y: auto; padding-right: 2px; }
   .polar-app .top-24 .jarvis-panel { padding: 10px; }
-  .polar-app .top-24 .pointer-events-auto:last-child { display: none; }
+  .polar-app .top-24 .pointer-events-auto:last-child { display: block; }
   .polar-app .bottom-6.right-8 { max-width: calc(100% - 24px); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 8px; }
   .polar-app .contingency-widget { left: 12px; right: 12px; bottom: 42px; max-width: none; }
   .polar-app .contingency-widget .jarvis-panel { padding: 7px; }
   .polar-app .contingency-widget .flex.flex-wrap { flex-wrap: nowrap; overflow-x: auto; }
   .polar-app .contingency-widget button { flex: 1 0 auto; white-space: nowrap; }
+  .polar-app .contingency-widget { bottom: 42px; }
+  .machine-dock { display: grid; position: fixed; left: 12px; right: 12px; bottom: 142px; z-index: 12; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+  .machine-dock button { min-width: 0; padding: 8px 3px; border: 1px solid rgba(0, 210, 255, .45); background: rgba(2, 9, 18, .9); color: #67e8f9; font: 8px "JetBrains Mono", monospace; letter-spacing: .04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .machine-dock button.active { border-color: #a78bfa; color: #ddd6fe; background: rgba(124, 58, 237, .25); }
   .polar-app .modal-panel { top: 92px !important; right: 12px !important; left: 12px !important; width: auto !important; max-width: none !important; max-height: calc(100dvh - 110px); overflow-y: auto; padding: 12px; }
   .dashboard-scroll-wrap { max-width: none; width: 100%; height: 100dvh; padding: 145px 12px 28px; overflow-x: hidden; }
   .dashboard-scroll-wrap .hero-row { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 16px; }
@@ -188,4 +193,5 @@ body, #root {
   .polar-app .top-6.left-1\/2 button { font-size: 7px; letter-spacing: .04em; }
   .polar-app .top-6.right-8 .station-link-status { display: none; }
   .dashboard-scroll-wrap { padding-top: 132px; }
+  .machine-dock { bottom: 145px; }
 }

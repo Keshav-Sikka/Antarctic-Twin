@@ -15,7 +15,7 @@ export default function BlueprintModal({ machine, isStationOverview, station, on
     const overviewSrc = isBharati ? '/blueprints/placeholder-5.jpg' : '/blueprints/placeholder-6.jpg';
 
     return (
-      <div className="jarvis-panel w-[26rem] p-5 z-50 animate-in fade-in zoom-in-95 duration-200" style={{ position: 'fixed', top: '5.5rem', right: '2rem' }}>
+      <div className="jarvis-panel modal-panel w-[26rem] p-5 z-50 animate-in fade-in zoom-in-95 duration-200" style={{ position: 'fixed', top: '5.5rem', right: '2rem' }}>
         <div className="flex justify-between items-center border-b border-cyan-500/40 pb-3 mb-4">
           <div className="flex space-x-2 text-[11px] font-bold tracking-widest text-cyan-300 text-glow">
             <Globe2 className="w-4 h-4" />
@@ -47,7 +47,7 @@ export default function BlueprintModal({ machine, isStationOverview, station, on
   const blueprintSrc = BLUEPRINT_MAP[machine.id] || '/blueprints/placeholder-1.jpg';
 
   return (
-    <div className="jarvis-panel w-[26rem] p-5 z-50 animate-in fade-in zoom-in-95 duration-200" style={{ position: 'fixed', top: '5.5rem', right: '2rem' }}>
+    <div className="jarvis-panel modal-panel w-[26rem] p-5 z-50 animate-in fade-in zoom-in-95 duration-200" style={{ position: 'fixed', top: '5.5rem', right: '2rem' }}>
       <div className="flex justify-between items-center border-b border-cyan-500/40 pb-3 mb-4">
         <div className="flex space-x-2 text-[11px] font-bold tracking-widest text-cyan-300 text-glow">
           <Cpu className="w-4 h-4" />

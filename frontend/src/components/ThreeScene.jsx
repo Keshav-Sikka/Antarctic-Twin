@@ -41,7 +41,8 @@ export default function ThreeScene({ machines, selectedMachineId, onMachineClick
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const isCompactViewport = window.matchMedia('(max-width: 768px)').matches;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isCompactViewport ? 1.25 : 2));
     container.appendChild(renderer.domElement);
 
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -249,7 +250,7 @@ export default function ThreeScene({ machines, selectedMachineId, onMachineClick
     // ==========================================
     // Particles & Raycasting
     // ==========================================
-    const pCount = 3500;
+    const pCount = isCompactViewport ? 900 : 3500;
     const pPos = new Float32Array(pCount * 3);
     for (let i = 0; i < pCount * 3; i += 3) {
       pPos[i] = (Math.random() - 0.5) * 100;
@@ -310,14 +311,19 @@ export default function ThreeScene({ machines, selectedMachineId, onMachineClick
 
     const handleResize = () => {
       if (!container) return;
-      camera.aspect = container.clientWidth / container.clientHeight;
+      const nextWidth = Math.max(container.clientWidth, 1);
+      const nextHeight = Math.max(container.clientHeight, 1);
+      camera.aspect = nextWidth / nextHeight;
       camera.updateProjectionMatrix();
-      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setSize(nextWidth, nextHeight);
     };
     window.addEventListener('resize', handleResize);
+    const resizeObserver = new ResizeObserver(handleResize);
+    resizeObserver.observe(container);
 
     return () => {
       window.removeEventListener('resize', handleResize);
+      resizeObserver.disconnect();
       renderer.domElement.removeEventListener('pointerdown', handlePointerDown);
       cancelAnimationFrame(animId);
       renderer.dispose();

@@ -102,3 +102,90 @@ body, #root {
 .alert-item.good .alert-icon { color: #10b981; background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; }
 
 .inventory-row { position: relative; margin: 11px 15px; padding-bottom: 6px; border-bottom: 1px solid rgba(0, 210, 255, 0.2); display: flex; justify-content: space-between; font-size: 10px; color: #b6d0db; }
+.contingency-widget { max-width: min(31rem, calc(100vw - 2rem)); }
+.contingency-widget .jarvis-panel { background: rgba(2, 9, 18, 0.86); }
+.station-selector { background: rgba(2, 9, 18, 0.9); }
+.station-choice { min-width: 4.8rem; font-weight: 700; }
+.timeline-widget { width: min(23rem, calc(100vw - 2rem)); background: rgba(2, 9, 18, 0.9); pointer-events: none; }
+.timeline-widget button, .timeline-widget select { pointer-events: auto; }
+.timeline-play { display: grid; place-items: center; }
+.timeline-speed { font-family: inherit; font-size: 8px; }
+.emergency-alert-popup {
+  position: fixed;
+  top: 6.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  width: min(28rem, calc(100vw - 2rem));
+  padding: 14px;
+  background: rgba(5, 8, 16, 0.94);
+  border: 1px solid #f59e0b;
+  box-shadow: 0 0 28px rgba(245, 158, 11, .35), inset 0 0 18px rgba(245, 158, 11, .08);
+  animation: alert-pulse 1.2s ease-in-out infinite alternate;
+}
+.emergency-alert-popup.critical { border-color: #ff0055; box-shadow: 0 0 30px rgba(255, 0, 85, .42), inset 0 0 18px rgba(255, 0, 85, .1); }
+.emergency-alert-popup.critical .emergency-alert-icon { color: #ff0055; }
+.emergency-alert-popup.warning .emergency-alert-icon { color: #f59e0b; }
+.emergency-alert-icon { display: grid; place-items: center; min-width: 30px; height: 30px; border: 1px solid currentColor; }
+.operations-grid { margin-top: 17px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.operations-grid .jarvis-panel { min-width: 0; }
+@keyframes alert-pulse { from { opacity: .86; } to { opacity: 1; } }
+
+/* Phone layout: preserve the HUD while allowing every surface to fit the viewport. */
+@media (max-width: 768px) {
+  html, body, #root { width: 100%; min-width: 0; height: 100%; min-height: 100%; overflow: hidden; }
+  .polar-app { width: 100%; height: 100dvh; min-height: 100dvh; overflow: hidden; }
+  .polar-app .top-6 { top: max(10px, env(safe-area-inset-top)); }
+  .polar-app .left-8 { left: 12px; }
+  .polar-app .right-8 { right: 12px; }
+  .polar-app .top-24 { top: 112px; }
+  .polar-app .bottom-6 { bottom: max(10px, env(safe-area-inset-bottom)); }
+  .polar-app .top-6.left-8 { transform: scale(.82); transform-origin: top left; }
+  .polar-app .top-6.left-1\/2 { top: 58px; width: calc(100% - 24px); left: 12px; transform: none; justify-content: center; gap: 6px; }
+  .polar-app .top-6.left-1\/2 button { min-width: 0; flex: 1; padding: 8px 6px; font-size: 8px; white-space: nowrap; }
+  .polar-app .top-6.right-8 { top: 10px; }
+  .polar-app .top-6.right-8 > div { gap: 7px; }
+  .polar-app .top-6.right-8 .jarvis-panel { padding: 7px 8px; font-size: 8px; }
+  .polar-app .top-6.right-8 .mr-2 { display: none; }
+  .polar-app .top-6.right-8 .station-selector { padding: 3px; }
+  .polar-app .top-6.right-8 .station-selector-icon { display: none; }
+  .polar-app .top-6.right-8 .station-choice { min-width: 0; padding: 7px 9px; font-size: 8px; }
+  .polar-app .timeline-widget { width: min(23rem, calc(100vw - 24px)); padding: 7px; }
+  .polar-app .timeline-widget > div:first-child { gap: 8px; }
+  .polar-app .timeline-widget .text-cyan-100 { font-size: 7px; }
+  .emergency-alert-popup { top: 8.5rem; width: calc(100vw - 24px); padding: 11px; }
+  .polar-app .w-\[17rem\] { width: calc(100% - 24px); left: 12px; right: 12px; }
+  .polar-app .top-24 { max-height: calc(100dvh - 155px); overflow-y: auto; padding-right: 2px; }
+  .polar-app .top-24 .jarvis-panel { padding: 10px; }
+  .polar-app .top-24 .pointer-events-auto:last-child { display: none; }
+  .polar-app .bottom-6.right-8 { max-width: calc(100% - 24px); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 8px; }
+  .polar-app .contingency-widget { left: 12px; right: 12px; bottom: 42px; max-width: none; }
+  .polar-app .contingency-widget .jarvis-panel { padding: 7px; }
+  .polar-app .contingency-widget .flex.flex-wrap { flex-wrap: nowrap; overflow-x: auto; }
+  .polar-app .contingency-widget button { flex: 1 0 auto; white-space: nowrap; }
+  .polar-app .modal-panel { top: 92px !important; right: 12px !important; left: 12px !important; width: auto !important; max-width: none !important; max-height: calc(100dvh - 110px); overflow-y: auto; padding: 12px; }
+  .dashboard-scroll-wrap { max-width: none; width: 100%; height: 100dvh; padding: 145px 12px 28px; overflow-x: hidden; }
+  .dashboard-scroll-wrap .hero-row { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 16px; }
+  .dashboard-scroll-wrap .hero-row h1 { font-size: 25px; }
+  .dashboard-scroll-wrap .hero-row > div:last-child { padding: 8px; gap: 7px; }
+  .dashboard-scroll-wrap .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .dashboard-scroll-wrap .metric-card { min-height: 92px; padding: 10px; }
+  .dashboard-scroll-wrap .metric-value { font-size: 20px; }
+  .content-grid, .advanced-grid { grid-template-columns: 1fr; gap: 12px; }
+  .operations-grid { grid-template-columns: 1fr; }
+  .content-grid { margin-top: 12px; }
+  .dashboard-scroll-wrap .panel-title { padding: 9px 10px; font-size: 8px; }
+  .dashboard-scroll-wrap .weather-main, .dashboard-scroll-wrap .energy-hero { padding: 12px; }
+  .dashboard-scroll-wrap .weather-grid { padding: 10px 12px; gap: 8px; }
+  .dashboard-scroll-wrap .causal-chain { overflow-x: auto; padding: 12px; min-width: 560px; }
+  .dashboard-scroll-wrap .causal-panel { overflow: hidden; }
+  .dashboard-scroll-wrap .whatif-actions { padding: 10px; }
+  .dashboard-scroll-wrap .mesh-stats { padding: 10px; }
+}
+
+@media (max-width: 390px) {
+  .polar-app .top-6.left-8 { transform: scale(.72); }
+  .polar-app .top-6.left-1\/2 button { font-size: 7px; letter-spacing: .04em; }
+  .polar-app .top-6.right-8 .station-link-status { display: none; }
+  .dashboard-scroll-wrap { padding-top: 132px; }
+}

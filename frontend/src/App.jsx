@@ -1,11 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ThreeScene from './components/ThreeScene';
 import TelemetryCard from './components/TelemetryCard';
 import BlueprintModal from './components/BlueprintModal';
+import { cacheTelemetry, flushDeltas, readCachedTelemetry } from './services/offlineStore';
 import {
-  Activity, AlertTriangle, BatteryCharging, Bot, ChevronDown, CloudSnow,
-  Gauge, Globe2, LayoutDashboard, Layers, Map, Network, Play, Radio, ShieldCheck,
-  Snowflake, Thermometer, Truck, Users, Zap, ShieldAlert
+  Activity, AlertTriangle, BatteryCharging, Bot, CalendarClock, ChevronDown, CloudSnow,
+  ClipboardList, FileText, Gauge, Globe2, LayoutDashboard, Layers, Map, Network, Pause, Play, Radio,
+  ShieldCheck, Snowflake, Thermometer, Truck, UserCog, Users, Zap, ShieldAlert
 } from 'lucide-react';
 
 const API = 'http://localhost:8000';
@@ -28,6 +29,68 @@ const fallback = {
 };
 
 const statusClass = (severity) => severity === 'CRITICAL' ? 'critical' : severity === 'WARNING' ? 'warning' : 'good';
+const timelineLabel = (date) => date.toLocaleString('en-GB', {
+  day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false
+}).replace(',', ' //');
+const buildOperationalAlerts = (state, scenario) => {
+  const alerts = [...(state.alerts || [])];
+  const has = (id) => alerts.some((alert) => alert.id === id);
+  const fuel = state.energy?.fuel_level_pct;
+  const generator = state.machines?.gen1;
+  const inventory = state.inventory || [];
+  const food = inventory.find((item) => /food/i.test(item.item));
+  const medical = inventory.find((item) => /medical/i.test(item.item));
+  const personnel = state.personnel;
+  if (fuel !== undefined && fuel < 30 && !has('resource-fuel')) alerts.push({ id: 'resource-fuel', severity: 'CRITICAL', title: 'Fuel reserve critical', impact: 'Backup runway is below safe threshold', action: 'Prioritize diesel resupply' });
+  else if (fuel !== undefined && fuel < 50 && !has('resource-fuel')) alerts.push({ id: 'resource-fuel', severity: 'WARNING', title: 'Fuel reserve declining', impact: 'Resupply window is approaching', action: 'Review next manifest' });
+  if (food && Number(food.value) < 40 && !has('resource-food')) alerts.push({ id: 'resource-food', severity: 'WARNING', title: 'Food supplies running low', impact: `${food.runway || food.value} remaining`, action: 'Confirm food resupply' });
+  if (medical && Number(medical.value) < 20 && !has('resource-medical')) alerts.push({ id: 'resource-medical', severity: 'WARNING', title: 'Medical inventory low', impact: `${medical.runway || medical.value} remaining`, action: 'Add to next flight manifest' });
+  if (generator?.status === 'CRITICAL' && !has('equipment-generator')) alerts.push({ id: 'equipment-generator', severity: 'CRITICAL', title: 'Generator G-01 critical', impact: 'Power continuity is at risk', action: 'Inspect generator and prepare backup' });
+  if (state.environment?.visibility_km < 2 && !has('weather-visibility')) alerts.push({ id: 'weather-visibility', severity: 'CRITICAL', title: 'Visibility critically reduced', impact: 'Outdoor operations are unsafe', action: 'Restrict exterior movement' });
+  if (personnel?.unaccounted > 0 && !has('personnel-checkin')) alerts.push({ id: 'personnel-checkin', severity: 'CRITICAL', title: 'Personnel check-in required', impact: `${personnel.unaccounted} person unaccounted`, action: 'Start emergency check-in' });
+  if (scenario !== 'NOMINAL' && !has('scenario-active')) alerts.push({ id: 'scenario-active', severity: 'WARNING', title: `${scenario.replace('_', ' ')} simulation active`, impact: 'Causal risk model is recalculating', action: 'Monitor Data Core' });
+  return alerts;
+};
+const POPUP_ALERT_IDS = new Set(['resource-fuel', 'equipment-generator', 'weather-visibility', 'scenario-active', 'timeline-storm', 'timeline-generator']);
+const applyTimeline = (base, simulatedAt, scenario) => {
+  const hour = simulatedAt.getUTCHours();
+  const month = simulatedAt.getUTCMonth();
+  const activity = hour >= 7 && hour < 19 ? 1.12 : hour >= 19 && hour < 23 ? 0.96 : 0.82;
+  const winterFactor = month >= 3 && month <= 8 ? 1.1 : 0.96;
+  const stormFactor = scenario === 'BLIZZARD' ? 1.22 : 1;
+  const failureFactor = scenario === 'GEN_FAILURE' ? 0.78 : 1;
+  const coldShift = Math.sin((hour / 24) * Math.PI * 2) * 3;
+  const environment = {
+    ...base.environment,
+    outside_temp_c: Number((base.environment.outside_temp_c - (winterFactor - 1) * 8 + coldShift).toFixed(1)),
+    wind_knots: Math.round(base.environment.wind_knots * stormFactor),
+    visibility_km: Number(Math.max(0.6, base.environment.visibility_km / stormFactor).toFixed(1)),
+    snow_accumulation_cm: Number((base.environment.snow_accumulation_cm + (stormFactor - 1) * 0.8).toFixed(1))
+  };
+  const power = Math.round(base.energy.power_consumption_kw * activity * winterFactor);
+  const fuel = Number(Math.max(0, base.energy.fuel_level_pct - (simulatedAt.getTime() / 3600000) % 0.8).toFixed(1));
+  const generator = Math.round(base.energy.generator_output_kw * activity * failureFactor);
+  const machines = Object.fromEntries(Object.entries(base.machines || {}).map(([id, machine]) => {
+    if (id === 'gen1') {
+      const temperature = Number((machine.metric_1_val + (activity - 1) * 18 + (stormFactor - 1) * 12).toFixed(1));
+      return [id, { ...machine, metric_1_val: temperature, metric_2_val: Number((machine.metric_2_val * activity * stormFactor).toFixed(1)), status: scenario === 'GEN_FAILURE' || temperature > 94 ? 'CRITICAL' : temperature > 86 ? 'WARNING' : 'NORMAL' }];
+    }
+    return [id, machine];
+  }));
+  const timelineAlert = scenario === 'BLIZZARD'
+    ? { id: 'timeline-storm', severity: 'CRITICAL', title: 'Blizzard operations restricted', impact: 'Visibility and wind exceed safe limits', action: 'Suspend outdoor operations' }
+    : scenario === 'GEN_FAILURE'
+      ? { id: 'timeline-generator', severity: 'CRITICAL', title: 'Generator failure simulation active', impact: 'Backup power reserve declining', action: 'Prepare load shedding' }
+      : null;
+  return {
+    ...base,
+    station_health: timelineAlert ? 'CRITICAL' : base.station_health,
+    environment,
+    energy: { ...base.energy, power_consumption_kw: power, generator_output_kw: generator, fuel_level_pct: fuel },
+    machines,
+    alerts: timelineAlert ? [timelineAlert, ...(base.alerts || []).filter((alert) => !alert.id.startsWith('timeline-'))] : (base.alerts || []).filter((alert) => !alert.id.startsWith('timeline-'))
+  };
+};
 const Sparkline = ({ tone = 'cyan' }) => (
   <svg className={`sparkline ${tone}`} viewBox="0 0 120 32" preserveAspectRatio="none"><polyline points="0,24 14,20 28,23 43,12 57,18 73,10 88,14 104,6 120,9" /></svg>
 );
@@ -50,18 +113,72 @@ export default function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeScenario, setActiveScenario] = useState('NOMINAL');
   const [systemLog, setSystemLog] = useState('SYS.ONLINE // UPLINK: 256KBPS');
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [timelinePlaying, setTimelinePlaying] = useState(true);
+  const [timelineSpeed, setTimelineSpeed] = useState(60);
+  const [simulatedAt, setSimulatedAt] = useState(() => new Date());
   
   const [whatIf, setWhatIf] = useState(null);
   const [whatIfLoading, setWhatIfLoading] = useState(false);
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('Ask me about station risk, generator health, weather or resource runway.');
+  const [role, setRole] = useState('STATION LEADER');
+  const [handoverNote, setHandoverNote] = useState('');
+  const [handoverPriority, setHandoverPriority] = useState('MEDIUM');
+  const [handoverLog, setHandoverLog] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('polarcore-handover') || '[]'); } catch { return []; }
+  });
   const wsRef = useRef(null);
+  const timelineBaseRef = useRef(fallback);
 
   useEffect(() => {
+    if (!timelinePlaying) return undefined;
+    const timer = window.setInterval(() => {
+      setSimulatedAt((current) => new Date(current.getTime() + timelineSpeed * 60 * 1000));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [timelinePlaying, timelineSpeed]);
+
+  useEffect(() => {
+    if (!timelinePlaying) return;
+    setTelemetry(applyTimeline(timelineBaseRef.current, simulatedAt, activeScenario));
+  }, [simulatedAt, activeScenario, timelinePlaying]);
+
+  useEffect(() => {
+    readCachedTelemetry().then((cached) => {
+      if (cached) {
+        const merged = { ...fallback, ...cached };
+        timelineBaseRef.current = merged;
+        setTelemetry(merged);
+      }
+    }).catch(() => setSystemLog('LOCAL CACHE UNAVAILABLE // FALLBACK ACTIVE'));
+    const onOnline = () => {
+      setIsOffline(false);
+      flushDeltas(API).catch(() => setSystemLog('SYNC DEFERRED // SATELLITE WINDOW CLOSED'));
+    };
+    const onOffline = () => {
+      setIsOffline(true);
+      setSystemLog('MESH-ZERO ACTIVE // LOCAL STORE-AND-FORWARD');
+    };
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
     const ws = new WebSocket(`${API.replace('http', 'ws')}/ws/telemetry`);
     wsRef.current = ws;
-    ws.onmessage = (event) => { try { setTelemetry((curr) => ({ ...curr, ...JSON.parse(event.data) })); } catch (err) {} };
-    return () => ws.close();
+    ws.onmessage = (event) => {
+      try {
+        const next = JSON.parse(event.data);
+        const merged = { ...timelineBaseRef.current, ...next };
+        timelineBaseRef.current = merged;
+        if (!timelinePlaying) setTelemetry(merged);
+        cacheTelemetry(next).catch(() => setSystemLog('CACHE WRITE RETRY // EDGE STORAGE BUSY'));
+      } catch { setSystemLog('TELEMETRY PACKET INVALID // LAST GOOD STATE RETAINED'); }
+    };
+    ws.onclose = () => setSystemLog('SAT-LINK LOST // LAST GOOD STATE RETAINED');
+    return () => {
+      ws.close();
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
   }, []);
 
   const triggerScenario = async (sc) => {
@@ -72,8 +189,8 @@ export default function App() {
     } catch { setSystemLog(`OFFLINE OVERRIDE: [${sc}]`); }
   };
 
-  const switchStation = async () => {
-    const next = station === 'BHARATI_STATION' ? 'MAITRI_STATION' : 'BHARATI_STATION';
+  const switchStation = async (requestedStation = null) => {
+    const next = requestedStation || (station === 'BHARATI_STATION' ? 'MAITRI_STATION' : 'BHARATI_STATION');
     setStation(next);
     setIsStationOverview(true);
     setIsModalOpen(false);
@@ -81,6 +198,7 @@ export default function App() {
       const res = await fetch(`${API}/api/station/switch`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ station: next }) });
       const data = await res.json();
       if (data.state) setTelemetry(data.state);
+      if (data.state) timelineBaseRef.current = data.state;
       setSystemLog(`STATION ACTIVE: ${next}`);
     } catch { setSystemLog(`STATION SWITCHED: ${next} (Offline Mode)`); }
   };
@@ -105,13 +223,77 @@ export default function App() {
     setQuestion('');
   };
 
+  const addHandoverNote = (event) => {
+    event.preventDefault();
+    if (!handoverNote.trim()) return;
+    const next = [{ id: Date.now(), text: handoverNote.trim(), priority: handoverPriority, role, time: new Date().toLocaleTimeString() }, ...handoverLog].slice(0, 6);
+    setHandoverLog(next);
+    localStorage.setItem('polarcore-handover', JSON.stringify(next));
+    setHandoverNote('');
+  };
+
+  const downloadComplianceReport = () => {
+    const rows = [
+      ['PolarCore Madrid Protocol Demonstration Report', ''],
+      ['Station', telemetry.station_label || station.replace('_', ' ')],
+      ['Generated', simulatedAt.toISOString()],
+      ['Fuel reserve (%)', energy.fuel_level_pct],
+      ['Generator output (kW)', energy.generator_output_kw],
+      ['Power consumption (kW)', energy.power_consumption_kw],
+      ['Outdoor temperature (C)', env.outside_temp_c],
+      ['Active alerts', activeAlerts.length],
+      ['Data classification', 'Simulated telemetry for demonstration']
+    ];
+    const csv = rows.map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(',')).join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${station.toLowerCase()}-compliance-report.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const currentMachine = telemetry.machines?.[selectedMachineId] || fallback.machines.gen1;
   const env = telemetry.environment || fallback.environment;
   const energy = telemetry.energy || fallback.energy;
   const health = telemetry.station_health || 'HEALTHY';
+  const season = simulatedAt.getUTCMonth() >= 3 && simulatedAt.getUTCMonth() <= 8 ? 'ANTARCTIC WINTER' : 'ANTARCTIC SUMMER';
+  const fuelDays = Math.max(1, Math.round((energy.fuel_level_pct / Math.max(1, energy.power_consumption_kw / 100)) * 10));
+  const weatherTaskBlocked = env.wind_knots >= 40 || env.visibility_km < 2;
+  const roleDescription = role === 'STATION LEADER'
+    ? 'Full operational control and emergency overrides'
+    : role === 'NCPOR HQ'
+      ? 'Fleet analytics, compliance and resupply oversight'
+      : 'Laboratory telemetry and task scheduling';
+  const activeAlerts = useMemo(() => buildOperationalAlerts(telemetry, activeScenario), [telemetry, activeScenario]);
+  const [urgentAlert, setUrgentAlert] = useState(null);
+  const lastAlertSignatureRef = useRef('');
+  const alertReadyRef = useRef(false);
+  const criticalAlert = activeAlerts.find((alert) => alert.severity === 'CRITICAL' && POPUP_ALERT_IDS.has(alert.id));
+  const urgentAlertSignature = criticalAlert ? `${criticalAlert.id}:${criticalAlert.severity}` : '';
+
+  useEffect(() => {
+    if (!criticalAlert || !urgentAlertSignature) {
+      setUrgentAlert(null);
+      lastAlertSignatureRef.current = '';
+      alertReadyRef.current = true;
+      return;
+    }
+    const signature = `${station}:${urgentAlertSignature}`;
+    if (!alertReadyRef.current) {
+      alertReadyRef.current = true;
+      lastAlertSignatureRef.current = signature;
+      return;
+    }
+    if (signature === lastAlertSignatureRef.current) return;
+    lastAlertSignatureRef.current = signature;
+    setUrgentAlert(criticalAlert);
+    const timeout = window.setTimeout(() => setUrgentAlert(null), 9000);
+    return () => window.clearTimeout(timeout);
+  }, [criticalAlert, urgentAlertSignature, station]);
 
   return (
-    <div className="relative w-screen h-screen bg-[#02050a] text-cyan-50 font-mono overflow-hidden">
+    <div className="polar-app relative w-screen h-screen bg-[#02050a] text-cyan-50 font-mono overflow-hidden">
       
       {/* ─────────────────────────────────────────────────────────
           HUD: LOGO & CENTRAL SWITCHER
@@ -126,7 +308,7 @@ export default function App() {
         </div>
       </div>
 
-      <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-50 flex space-x-6">
+      <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-[60] flex space-x-6">
         <button onClick={() => setView('twin')} className={`flex items-center space-x-2 px-5 py-2 text-[11px] tracking-widest uppercase transition-all duration-300 border ${view === 'twin' ? 'border-cyan-400 text-cyan-300 text-glow bg-cyan-900/40 shadow-[0_0_15px_rgba(0,210,255,0.3)]' : 'border-cyan-900/60 text-cyan-600 hover:text-cyan-400 bg-black/40'}`}>
           <Globe2 className="w-3.5 h-3.5" /> <span>AR Spatial Twin</span>
         </button>
@@ -138,23 +320,75 @@ export default function App() {
       {/* ─────────────────────────────────────────────────────────
           TOP RIGHT: STATION TOGGLE & QUICK OVERVIEW
       ───────────────────────────────────────────────────────── */}
-      <div className="absolute top-6 right-8 z-50 flex flex-col items-end space-y-3 pointer-events-auto">
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2 font-mono text-[10px] text-cyan-300/80 tracking-widest mr-2">
+      <div className="absolute top-6 right-8 z-50 flex flex-col items-end space-y-3 pointer-events-none">
+        <div className="flex items-center space-x-4 pointer-events-auto">
+          <div className="station-link-status flex items-center space-x-2 font-mono text-[10px] text-cyan-300/80 tracking-widest mr-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-            <span>SAT-LINK: 256 KBPS</span>
+            <span>{isOffline ? 'MESH-ZERO: OFFLINE' : 'SAT-LINK: 256 KBPS'}</span>
           </div>
-          <button onClick={switchStation} className="jarvis-panel px-4 py-2 flex items-center space-x-2 text-[10px] tracking-widest text-cyan-300 hover:text-cyan-100 transition-colors shadow-[inset_0_0_10px_rgba(0,210,255,0.2)]">
-            <Map className="w-3.5 h-3.5" />
-            <span>{station === 'BHARATI_STATION' ? 'BHARATI' : 'MAITRI'}</span>
-            <ChevronDown className="w-3 h-3" />
-          </button>
+          <div className="station-selector jarvis-panel flex items-center gap-1 p-1" aria-label="Select station location">
+            <Map className="station-selector-icon w-3.5 h-3.5 ml-1 text-cyan-400" />
+            {[
+              { id: 'BHARATI_STATION', label: 'BHARATI' },
+              { id: 'MAITRI_STATION', label: 'MAITRI' },
+            ].map((location) => (
+              <button
+                key={location.id}
+                onClick={() => switchStation(location.id)}
+                aria-pressed={station === location.id}
+                className={`station-choice px-3 py-1.5 text-[10px] tracking-widest transition-all ${
+                  station === location.id
+                    ? 'bg-cyan-400/20 text-cyan-100 border border-cyan-300 text-glow'
+                    : 'text-cyan-500 border border-transparent hover:border-cyan-700 hover:text-cyan-200'
+                }`}
+              >
+                {location.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="timeline-widget jarvis-panel px-2.5 py-2 text-[8px] tracking-widest text-cyan-300">
+          <div className="flex items-center justify-between gap-3 mb-1">
+            <span className="text-cyan-500">SIMULATED LIVE TIMELINE</span>
+            <span className="text-emerald-400">{season}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setTimelinePlaying((playing) => !playing)}
+              className="timeline-play border border-cyan-500/60 px-2 py-1 text-cyan-100 hover:bg-cyan-400/20"
+              aria-label={timelinePlaying ? 'Pause timeline' : 'Play timeline'}
+            >
+              {timelinePlaying ? <Pause size={10} /> : <Play size={10} />}
+            </button>
+            <span className="text-cyan-100 whitespace-nowrap">{timelineLabel(simulatedAt)}</span>
+            <select
+              value={timelineSpeed}
+              onChange={(event) => setTimelineSpeed(Number(event.target.value))}
+              className="timeline-speed bg-black/60 border border-cyan-800 text-cyan-200 px-1 py-1 outline-none"
+              aria-label="Timeline speed"
+            >
+              <option value="1">1X</option>
+              <option value="10">10X</option>
+              <option value="60">60X</option>
+              <option value="240">240X</option>
+            </select>
+          </div>
+          <div className="mt-2 flex items-center gap-2 border-t border-cyan-900/50 pt-2">
+            <UserCog size={10} className="text-purple-400" />
+            <span className="text-cyan-600">ROLE</span>
+            <select value={role} onChange={(event) => setRole(event.target.value)} className="timeline-speed flex-1 bg-black/60 border border-cyan-800 text-purple-200 px-1 py-1 outline-none">
+              <option>STATION LEADER</option>
+              <option>NCPOR HQ</option>
+              <option>RESEARCHER</option>
+            </select>
+          </div>
+          <div className="mt-1 text-[7px] text-purple-300/70">{roleDescription}</div>
         </div>
         
         {view === 'twin' && (
           <button 
             onClick={() => { setIsStationOverview(true); setIsModalOpen(true); setSelectedMachineId('overview'); }} 
-            className="jarvis-panel px-4 py-1.5 flex items-center space-x-2 text-[9px] tracking-widest text-cyan-300 hover:text-cyan-100 transition-colors shadow-[inset_0_0_10px_rgba(0,210,255,0.2)]"
+            className="pointer-events-auto jarvis-panel px-4 py-1.5 flex items-center space-x-2 text-[9px] tracking-widest text-cyan-300 hover:text-cyan-100 transition-colors shadow-[inset_0_0_10px_rgba(0,210,255,0.2)]"
           >
             <Globe2 className="w-3 h-3" />
             <span>STATION OVERVIEW</span>
@@ -169,6 +403,20 @@ export default function App() {
       ───────────────────────────────────────────────────────── */}
       {view === 'twin' ? (
         <>
+          {urgentAlert && (
+            <div className={`emergency-alert-popup ${urgentAlert.severity === 'CRITICAL' ? 'critical' : 'warning'}`} role="alert">
+              <div className="flex items-start gap-3">
+                <div className="emergency-alert-icon"><AlertTriangle size={18} /></div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[9px] tracking-[2px] font-bold">{urgentAlert.severity} // LIVE ALERT</div>
+                  <strong className="block text-sm text-white text-glow-red mt-1">{urgentAlert.title}</strong>
+                  <p className="text-[10px] text-cyan-100/80 mt-1">{urgentAlert.impact}</p>
+                  <small className="block text-[9px] text-amber-200 mt-2">RECOMMENDED → {urgentAlert.action}</small>
+                </div>
+                <button onClick={() => setUrgentAlert(null)} className="text-cyan-400 hover:text-white" aria-label="Dismiss alert">×</button>
+              </div>
+            </div>
+          )}
           <div className="absolute inset-0 z-0">
             <ThreeScene 
               machines={telemetry.machines} 
@@ -183,21 +431,7 @@ export default function App() {
             />
           </div>
 
-          <div className="absolute top-24 left-8 z-10 flex flex-col space-y-4 pointer-events-none w-[17rem]">
-            <div className="jarvis-panel p-4 pointer-events-auto">
-              <div className="flex items-center space-x-2 mb-3 border-b border-cyan-500/40 pb-2">
-                <ShieldAlert className="w-3.5 h-3.5 text-cyan-400" />
-                <span className="text-[10px] font-bold tracking-widest text-cyan-300 text-glow">CONTINGENCY VECTOR</span>
-              </div>
-              <div className="flex flex-col space-y-1.5 text-[9px]">
-                {[{ id: 'NOMINAL', label: 'SYS.NOMINAL' }, { id: 'BLIZZARD', label: 'SIM.BLIZZARD_72KT' }, { id: 'GEN_FAILURE', label: 'SIM.THERMAL_RUNAWAY' }, { id: 'FUEL_FREEZE', label: 'SIM.LINE_FREEZE' }].map((s) => (
-                  <button key={s.id} onClick={() => triggerScenario(s.id)} className={`text-left px-2.5 py-1.5 border transition-all ${activeScenario === s.id ? 'border-cyan-400 text-cyan-100 text-glow bg-cyan-400/20 shadow-[inset_0_0_10px_rgba(0,210,255,0.2)]' : 'border-cyan-900/60 text-cyan-500 hover:border-cyan-400/80 hover:text-cyan-300 bg-black/40'}`}>
-                    {activeScenario === s.id ? '► ' : ''}{s.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
+          <div className="absolute top-24 left-8 z-10 flex flex-col pointer-events-none w-[17rem]">
             <div className="pointer-events-auto">
               <TelemetryCard 
                 machine={currentMachine} 
@@ -209,6 +443,22 @@ export default function App() {
                 }} 
                 onOpenBlueprint={() => setIsModalOpen(true)} 
               />
+            </div>
+          </div>
+
+          <div className="contingency-widget absolute bottom-6 left-8 z-10 pointer-events-auto">
+            <div className="jarvis-panel p-2">
+              <div className="flex items-center space-x-2 mb-2">
+                <ShieldAlert className="w-3 h-3 text-cyan-400" />
+                <span className="text-[8px] font-bold tracking-widest text-cyan-300 text-glow">CONTINGENCY VECTOR</span>
+              </div>
+              <div className="flex flex-wrap gap-1 text-[8px]">
+                {[{ id: 'NOMINAL', label: 'NOMINAL' }, { id: 'BLIZZARD', label: 'BLIZZARD' }, { id: 'GEN_FAILURE', label: 'GEN FAIL' }, { id: 'FUEL_FREEZE', label: 'LINE FREEZE' }].map((s) => (
+                  <button key={s.id} onClick={() => triggerScenario(s.id)} className={`px-2 py-1 border transition-all ${activeScenario === s.id ? 'border-cyan-400 text-cyan-100 text-glow bg-cyan-400/20 shadow-[inset_0_0_10px_rgba(0,210,255,0.2)]' : 'border-cyan-900/60 text-cyan-500 hover:border-cyan-400/80 hover:text-cyan-300 bg-black/40'}`}>
+                    {activeScenario === s.id ? '► ' : ''}{s.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -285,8 +535,8 @@ export default function App() {
 
             <div className="flex flex-col space-y-4">
               <div className="jarvis-panel">
-                <div className="panel-title"><span><AlertTriangle size={13} className="mr-2 inline"/> ALERT CENTER</span> <b className="text-red-400">{telemetry.alerts.filter((a) => a.severity !== 'GOOD').length} ACTIVE</b></div>
-                {telemetry.alerts.map((alert) => (
+                <div className="panel-title"><span><AlertTriangle size={13} className="mr-2 inline"/> ALERT CENTER</span> <b className="text-red-400">{activeAlerts.filter((a) => a.severity !== 'GOOD').length} ACTIVE</b></div>
+                {activeAlerts.map((alert) => (
                   <div className="alert-item" key={alert.id}>
                     <div className="alert-icon"><AlertTriangle size={10} /></div>
                     <div><strong className="block text-[10px] text-cyan-100 tracking-widest mb-1">{alert.title}</strong><span className="block text-[9px] text-cyan-500">{alert.impact}</span><small className="block text-[8px] text-cyan-400 mt-1">→ {alert.action}</small></div>
@@ -354,6 +604,32 @@ export default function App() {
                 <div><small className="block text-[8px] text-cyan-600 tracking-widest mb-1">PEER NODES</small><strong className="text-[10px] text-cyan-200">2 ACTIVE</strong></div>
               </div>
               <div className="p-4 text-[9px] text-cyan-500 tracking-widest">SATELLITE UPLINK NOMINAL — CRDT MERGE WINDOW READY</div>
+            </div>
+          </div>
+
+          <div className="advanced-grid operations-grid">
+            {role !== 'NCPOR HQ' && <div className="jarvis-panel">
+              <div className="panel-title"><span><CalendarClock size={13} className="mr-2 inline"/> WEATHER-AWARE TASKS</span><b className={weatherTaskBlocked ? 'text-red-400' : 'text-emerald-400'}>{weatherTaskBlocked ? 'RESTRICTED' : 'CLEAR WINDOW'}</b></div>
+              <div className="p-3 text-[9px] tracking-widest">
+                <div className="flex justify-between border-b border-cyan-900/50 pb-2"><span>EXTERIOR MAINTENANCE</span><strong className={weatherTaskBlocked ? 'text-red-400' : 'text-emerald-400'}>{weatherTaskBlocked ? 'RESCHEDULE' : 'SCHEDULED'}</strong></div>
+                <p className="text-cyan-500 mt-2">{weatherTaskBlocked ? 'Wind/visibility threshold exceeded. Indoor generator inspection recommended.' : 'Weather window open. Fuel-line inspection can proceed.'}</p>
+              </div>
+            </div>}
+
+            {role !== 'RESEARCHER' && <div className="jarvis-panel">
+              <div className="panel-title"><span><Gauge size={13} className="mr-2 inline"/> FUEL BURN-RATE PREDICTOR</span><b className="text-amber-400">FORECAST</b></div>
+              <div className="p-3"><strong className="text-2xl text-cyan-200 text-glow">{fuelDays} <small className="text-xs text-cyan-500">DAYS</small></strong><p className="text-[9px] text-cyan-500 tracking-widest mt-2">PROJECTED RUNWAY AT CURRENT HEATING LOAD</p><div className="h-2 bg-cyan-950 mt-3"><div className="h-full bg-amber-400" style={{ width: `${Math.min(100, energy.fuel_level_pct)}%` }} /></div></div>
+            </div>}
+
+            {role !== 'RESEARCHER' && <div className="jarvis-panel">
+              <div className="panel-title"><span><FileText size={13} className="mr-2 inline"/> TREATY COMPLIANCE</span><b className="text-cyan-400">MADRID PROTOCOL</b></div>
+              <div className="p-3 text-[9px] text-cyan-500 tracking-widest"><p>Fuel, energy, environmental, and alert metrics are ready for export.</p><button onClick={downloadComplianceReport} className="mt-3 border border-cyan-500/60 px-3 py-2 text-cyan-100 hover:bg-cyan-400/20">DOWNLOAD CSV REPORT</button></div>
+            </div>}
+
+            <div className="jarvis-panel">
+              <div className="panel-title"><span><ClipboardList size={13} className="mr-2 inline"/> SHIFT HANDOVER LOG</span><b className="text-purple-400">{handoverLog.length} NOTES</b></div>
+              <form onSubmit={addHandoverNote} className="flex flex-wrap gap-2 p-3 border-b border-cyan-900/50"><input value={handoverNote} onChange={(event) => setHandoverNote(event.target.value)} placeholder="Add incoming-shift note..." className="min-w-0 flex-1 bg-black/40 border border-cyan-800 px-2 py-2 text-[9px] text-cyan-100 outline-none" /><select value={handoverPriority} onChange={(event) => setHandoverPriority(event.target.value)} className="bg-black/60 border border-cyan-800 px-1 text-[9px] text-cyan-200"><option>LOW</option><option>MEDIUM</option><option>CRITICAL</option></select><button className="border border-purple-500/60 px-2 text-purple-300">ADD</button></form>
+              <div className="max-h-32 overflow-y-auto">{handoverLog.map((note) => <div key={note.id} className="px-3 py-2 border-b border-cyan-900/40 text-[9px]"><strong className={note.priority === 'CRITICAL' ? 'text-red-400' : note.priority === 'HIGH' ? 'text-amber-400' : 'text-cyan-200'}>{note.priority || 'MEDIUM'}</strong><span className="text-cyan-600 ml-2">{note.role} // {note.time}</span><p className="text-cyan-500 mt-1">{note.text}</p></div>)}</div>
             </div>
           </div>
         </div>

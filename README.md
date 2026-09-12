@@ -5,6 +5,14 @@ India's Antarctic research stations, **Bharati** and **Maitri**. Built for
 **Smart India Hackathon 2026 (Problem Statement ID: SIH26060)** under the
 **Ministry of Earth Sciences (MoES) / NCPOR**.
 
+## Showcase Link
+
+- **Local showcase:** <http://localhost:5175/>
+
+Start the frontend with `npm run dev -- --port 5175` from the `frontend/`
+directory before opening the link. This address is available only on the
+computer running the local development server; it is not a public URL.
+
 ## Quick Start
 
 ### Prerequisites

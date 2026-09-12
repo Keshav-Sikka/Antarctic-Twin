@@ -5,6 +5,14 @@ India's Antarctic research stations, **Bharati** and **Maitri**. Built for
 **Smart India Hackathon 2026 (Problem Statement ID: SIH26060)** under the
 **Ministry of Earth Sciences (MoES) / NCPOR**.
 
+## Showcase Link
+
+- **Local showcase:** <http://localhost:5175/>
+
+Start the frontend with `npm run dev -- --port 5175` from the `frontend/`
+directory before opening the link. This address is available only on the
+computer running the local development server; it is not a public URL.
+
 ## Quick Start
 
 ### Prerequisites
@@ -57,7 +65,7 @@ npm install
 npm run dev
 ```
 
-Open the dashboard at <http://localhost:5173>.
+Open the dashboard at <http://localhost:5175/>.
 
 ## System Architecture & Features
 
@@ -149,6 +157,71 @@ change with subsystem telemetry.
         ├── App.jsx
         └── index.css
 ```
+
+## Station Operations
+
+The 3D station view is the primary operator experience:
+
+- Use the **BHARATI** and **MAITRI** buttons in the top-right station selector
+  to switch location and telemetry.
+- Click a building subsystem to inspect its status, metrics, and schematic.
+- Use the compact **Contingency Vector** controls in the lower corner to
+  simulate nominal operations, blizzards, generator failure, or fuel-line
+  freeze.
+- Open **Data Core** for the complete station data view, including energy,
+  environment, alerts, logistics, personnel, Station AI, causal intelligence,
+  and what-if projections.
+
+## Mobile and Android
+
+The interface is responsive for phone-sized screens:
+
+- The station model remains the main visual surface.
+- Station selection and contingency controls remain accessible without
+  covering the building.
+- Data Core panels stack vertically for touch scrolling.
+- Three.js lowers pixel density and snow-particle count on compact screens.
+
+An Android debug APK can be built with Capacitor:
+
+```bash
+cd frontend
+npm run build
+npx cap sync android
+cd android
+./gradlew assembleDebug
+```
+
+The generated APK is written to
+`frontend/android/app/build/outputs/apk/debug/app-debug.apk`.
+
+## Backend API
+
+The prototype exposes these core endpoints:
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /api/state` | Read the active station state |
+| `POST /api/station/switch` | Switch between Bharati and Maitri |
+| `POST /api/scenario` | Apply a contingency scenario |
+| `POST /api/what-if` | Project a contingency outcome |
+| `POST /api/assistant` | Ask the local Station AI |
+| `GET /api/heartbeat` | Return lightweight service health |
+| `POST /api/sync/delta` | Submit queued telemetry deltas |
+| `WS /ws/telemetry` | Receive simulated telemetry updates |
+
+## Offline-First Edge Design
+
+PolarCore is designed for intermittent Antarctic satellite connectivity:
+
+1. Cache the last-known-good telemetry state in IndexedDB.
+2. Keep the interface usable when the backend is unavailable.
+3. Queue local changes as compact telemetry deltas.
+4. Flush queued deltas when connectivity returns.
+5. Report link state, sync status, and degraded operation to the operator.
+
+The prototype uses local deterministic rules rather than requiring an external
+LLM or live weather API for core decision-support behavior.
 
 ## License
 

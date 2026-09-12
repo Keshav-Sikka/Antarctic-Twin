@@ -65,7 +65,7 @@ npm install
 npm run dev
 ```
 
-Open the dashboard at <http://localhost:5173>.
+Open the dashboard at <http://localhost:5175/>.
 
 ## System Architecture & Features
 

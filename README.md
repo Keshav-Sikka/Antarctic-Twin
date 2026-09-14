@@ -212,6 +212,20 @@ The 3D station view is the primary operator experience:
   environment, alerts, logistics, personnel, Station AI, causal intelligence,
   what-if projections, timeline controls, and the operations suite.
 
+### Room-scale digital twin
+
+The **Room Twin** view provides a prototype room-level operations layer for
+both stations. Each station has seven named rooms with simulated temperature,
+humidity, occupancy, heater, ventilation fan, lighting, and power-load signals.
+Select a room to inspect its telemetry and toggle devices to demonstrate load
+changes.
+
+The **Live Fault Demo** can drop a selected room's temperature and explain
+three deterministic demonstration causes: heater damage, local power loss, or
+an open door/insulation leak. This is simulated decision-support telemetry,
+not a safety forecast. The room plan must be verified against official station
+CAD/BIM documentation before operational use.
+
 ## Demo Flow
 
 For a concise judge demonstration:

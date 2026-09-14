@@ -32,7 +32,7 @@ const causeText = {
   DOOR_OPEN: ['INSULATION / DOOR OPEN', 'Temperature is falling while the heater is still producing output.', 'Close the external door and inspect the airlock seal.']
 };
 
-export default function RoomOperationsView({ station }) {
+export default function RoomOperationsView({ station, initialRoomId }) {
   const [rooms, setRooms] = useState(() => makeRooms(station));
   const [selectedId, setSelectedId] = useState(() => makeRooms(station)[0].id);
   const [fault, setFault] = useState(null);
@@ -40,9 +40,9 @@ export default function RoomOperationsView({ station }) {
 
   useEffect(() => {
     setRooms(makeRooms(station));
-    setSelectedId(makeRooms(station)[0].id);
+    setSelectedId(initialRoomId || makeRooms(station)[0].id);
     setFault(null);
-  }, [station]);
+  }, [station, initialRoomId]);
 
   useEffect(() => {
     if (fault) return undefined;

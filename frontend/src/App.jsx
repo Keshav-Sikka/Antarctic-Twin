@@ -111,6 +111,7 @@ export default function App() {
   const [view, setView] = useState('twin'); 
   const [station, setStation] = useState('BHARATI_STATION');
   const [selectedMachineId, setSelectedMachineId] = useState('gen1');
+  const [selectedRoomId, setSelectedRoomId] = useState(null);
   const [isStationOverview, setIsStationOverview] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeScenario, setActiveScenario] = useState('NOMINAL');
@@ -410,7 +411,7 @@ export default function App() {
           MODE 1: AR SPATIAL TWIN
       ───────────────────────────────────────────────────────── */}
       {view === 'rooms' ? (
-        <RoomOperationsView station={station} />
+        <RoomOperationsView station={station} initialRoomId={selectedRoomId} />
       ) : view === 'architecture' ? (
         <ArchitectureView station={station} telemetry={telemetry} activeScenario={activeScenario} />
       ) : view === 'twin' ? (
@@ -440,6 +441,10 @@ export default function App() {
                 setSelectedMachineId(id); 
                 setIsModalOpen(true); 
               }} 
+              onRoomClick={(id) => {
+                setSelectedRoomId(id);
+                setView('rooms');
+              }}
             />
           </div>
 

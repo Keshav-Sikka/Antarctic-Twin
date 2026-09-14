@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three-stdlib';
 
-export default function ThreeScene({ machines, selectedMachineId, onMachineClick, activeScenario, station = 'BHARATI_STATION' }) {
+export default function ThreeScene({ machines, selectedMachineId, onMachineClick, onRoomClick, activeScenario, station = 'BHARATI_STATION' }) {
   const mountRef = useRef(null);
   const sceneRef = useRef(null);
   const cameraRef = useRef(null);
@@ -11,6 +11,7 @@ export default function ThreeScene({ machines, selectedMachineId, onMachineClick
   const bharatiGroupRef = useRef(null);
   const maitriGroupRef = useRef(null);
   const machineMeshesRef = useRef({}); 
+  const roomMeshesRef = useRef([]);
   const roofsRef = useRef([]);
   const particlesRef = useRef(null);
   
@@ -20,9 +21,11 @@ export default function ThreeScene({ machines, selectedMachineId, onMachineClick
   const isFirstRender = useRef(true);
 
   const onMachineClickRef = useRef(onMachineClick);
+  const onRoomClickRef = useRef(onRoomClick);
   const activeScenarioRef = useRef(activeScenario);
 
   useEffect(() => { onMachineClickRef.current = onMachineClick; }, [onMachineClick]);
+  useEffect(() => { onRoomClickRef.current = onRoomClick; }, [onRoomClick]);
   useEffect(() => { activeScenarioRef.current = activeScenario; }, [activeScenario]);
 
   useEffect(() => {
@@ -62,6 +65,7 @@ export default function ThreeScene({ machines, selectedMachineId, onMachineClick
     scene.add(sunLight);
 
     const clickableList = [];
+    const roomClickableList = [];
 
     const createFlagTexture = () => {
       const canvas = document.createElement('canvas');
@@ -94,6 +98,27 @@ export default function ThreeScene({ machines, selectedMachineId, onMachineClick
       if (!machineMeshesRef.current[id]) machineMeshesRef.current[id] = [];
       machineMeshesRef.current[id].push({ mesh, ring });
       clickableList.push(mesh);
+    };
+
+    const addRoom = (id, pos, size, group, color = 0x22d3ee) => {
+      const roomGroup = new THREE.Group();
+      roomGroup.position.set(...pos);
+      roomGroup.userData = { roomId: id };
+      const floor = new THREE.Mesh(
+        new THREE.BoxGeometry(size[0], 0.08, size[1]),
+        new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.35, transparent: true, opacity: 0.48 })
+      );
+      floor.userData = { roomId: id };
+      roomGroup.add(floor);
+      const outline = new THREE.LineSegments(
+        new THREE.EdgesGeometry(new THREE.BoxGeometry(size[0], 0.65, size[1])),
+        new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.9 })
+      );
+      outline.position.y = 0.33;
+      roomGroup.add(outline);
+      group.add(roomGroup);
+      roomMeshesRef.current.push({ roomId: id, floor, outline });
+      roomClickableList.push(floor);
     };
 
     const buildHollowRoom = (w, h, d, wallMat, floorMat) => {
@@ -181,6 +206,17 @@ export default function ThreeScene({ machines, selectedMachineId, onMachineClick
     bharatiGroup.add(fuelPlatform);
     addMachine('fuel', [12, 2.2, 0], [3, 2, 4], bharatiGroup, 'External Fuel'); 
 
+    // Room-scale twin: seven selectable prototype rooms inside the Bharati shell.
+    [
+      ['B-01', [-4.5, 5.58, -2.6], [4, 3.8]],
+      ['B-02', [0, 5.58, -2.6], [4, 3.8]],
+      ['B-03', [4.5, 5.58, -2.6], [4, 3.8]],
+      ['B-04', [-4.5, 9.08, 2.8], [4, 3.8]],
+      ['B-05', [0, 9.08, 2.8], [4, 3.8]],
+      ['B-06', [4.5, 9.08, 2.8], [4, 3.8]],
+      ['B-07', [0, 9.08, 6.4], [4, 3.2]]
+    ].forEach(([id, pos, size]) => addRoom(id, pos, size, bharatiGroup));
+
     // ================== MAITRI ==================
     const maitriGroup = new THREE.Group();
     maitriGroupRef.current = maitriGroup;
@@ -247,6 +283,17 @@ export default function ThreeScene({ machines, selectedMachineId, onMachineClick
     // Fix: Moved Maitri Fuel tank inside the back spine room
     addMachine('fuel', [3, maitriY - 0.7, -8], [2.6, 1.8, 2], maitriGroup, 'Fuel');
 
+    // Room-scale twin: seven selectable prototype rooms in the Maitri U-plan.
+    [
+      ['M-01', [-8, maitriY - 1.48, -3.1], [5.2, 3.5]],
+      ['M-02', [-2.7, maitriY - 1.48, -3.1], [5.2, 3.5]],
+      ['M-03', [2.7, maitriY - 1.48, -3.1], [5.2, 3.5]],
+      ['M-04', [8, maitriY - 1.48, -3.1], [5.2, 3.5]],
+      ['M-05', [-8, maitriY - 1.48, 3.2], [5.2, 3.5]],
+      ['M-06', [0, maitriY - 1.48, 3.2], [5.2, 3.5]],
+      ['M-07', [8, maitriY - 1.48, 3.2], [5.2, 3.5]]
+    ].forEach(([id, pos, size]) => addRoom(id, pos, size, maitriGroup, 0xa78bfa));
+
     // ==========================================
     // Particles & Raycasting
     // ==========================================
@@ -272,6 +319,12 @@ export default function ThreeScene({ machines, selectedMachineId, onMachineClick
       raycaster.setFromCamera(mouse, camera);
       
       const activeTargets = clickableList.filter(m => m.parent.parent.visible);
+      const activeRoomTargets = roomClickableList.filter(m => m.parent.parent.visible);
+      const roomIntersects = raycaster.intersectObjects(activeRoomTargets);
+      if (roomIntersects.length > 0 && onRoomClickRef.current) {
+        onRoomClickRef.current(roomIntersects[0].object.userData.roomId);
+        return;
+      }
       const intersects = raycaster.intersectObjects(activeTargets);
       if (intersects.length > 0) {
         if (onMachineClickRef.current) onMachineClickRef.current(intersects[0].object.userData.id);

@@ -43,6 +43,10 @@ class CopilotRequest(BaseModel):
     question: str = ""
 
 
+class RoomDemoRequest(BaseModel):
+    cause: str = "HEATER_FAULT"
+
+
 STATION_PROFILES = {
     "BHARATI_STATION": {
         "label": "Bharati Research Station",
@@ -99,6 +103,27 @@ DOMAIN_NAMES = [
     "transport",
     "cybersecurity",
 ]
+
+ROOM_BLUEPRINTS = {
+    "BHARATI_STATION": [
+        ("B-01", "Crew Quarters", "LIVING", 3, 21.4),
+        ("B-02", "Laboratory", "RESEARCH", 4, 22.1),
+        ("B-03", "Power Room", "UTILITY", 1, 24.8),
+        ("B-04", "Medical Bay", "MEDICAL", 1, 21.8),
+        ("B-05", "Operations Hub", "CONTROL", 2, 22.4),
+        ("B-06", "Storage / Galley", "LOGISTICS", 3, 19.6),
+        ("B-07", "Communications Room", "COMMS", 1, 22.0),
+    ],
+    "MAITRI_STATION": [
+        ("M-01", "Crew Quarters", "LIVING", 3, 21.0),
+        ("M-02", "Laboratory", "RESEARCH", 5, 21.7),
+        ("M-03", "Generator Control", "UTILITY", 1, 25.2),
+        ("M-04", "Medical Bay", "MEDICAL", 1, 21.5),
+        ("M-05", "Operations Hub", "CONTROL", 2, 22.2),
+        ("M-06", "Workshop / Storage", "LOGISTICS", 2, 19.2),
+        ("M-07", "Communications Room", "COMMS", 1, 21.8),
+    ],
+}
 
 SCENARIO_PRESETS = {
     "NOMINAL": {"label": "Nominal operations", "description": "Baseline station operations."},
@@ -581,12 +606,55 @@ def architecture_status() -> Dict[str, Any]:
         "layers": [
             {"id": "acquisition", "name": "Data Acquisition", "protocols": ["MQTT", "BLE", "edge sensors"], "status": "LIVE", "signal_count": 42},
             {"id": "integration", "name": "Integration / Communication", "protocols": ["WebSocket", "Delta Sync", "IndexedDB"], "status": "SYNC", "bandwidth_kbps": 256},
-            {"id": "twin", "name": "Virtual Representation", "protocols": ["Three.js", "Causal Graph", "Simulation"], "status": "IN_SYNC", "asset_count": len(state.get("machines", {}))},
+            {"id": "twin", "name": "Virtual Representation", "protocols": ["Three.js", "Room Twin", "Causal Graph"], "status": "IN_SYNC", "asset_count": len(state.get("machines", {})) + 14},
             {"id": "applications", "name": "Control / Applications", "protocols": ["Data Core", "Alerts", "Directives"], "status": "READY", "role_views": 3},
         ],
         "feedback_loop": ["telemetry", "normalized_state", "twin_update", "recommendation", "operator_directive"],
         "simulation": {"active_scenario": state.get("active_scenario", "NOMINAL"), "offline_first": True},
     }
+
+
+def _room_payload(station_id: str, room_id: Optional[str] = None, cause: Optional[str] = None) -> Dict[str, Any]:
+    rooms = []
+    for index, (identifier, name, room_type, occupants, baseline) in enumerate(ROOM_BLUEPRINTS[station_id]):
+        active = identifier == room_id
+        temperature = baseline - 6.5 if active and cause else baseline
+        rooms.append({
+            "id": identifier, "name": name, "type": room_type, "occupants": occupants,
+            "temperature_c": round(temperature, 1), "humidity_pct": 38 + index * 3,
+            "heater": not (active and cause == "POWER_LOSS"),
+            "fan": True, "lights": not (active and cause == "POWER_LOSS"),
+            "power_kw": 0.35 if active and cause == "POWER_LOSS" else round(1.4 + (index % 3) * 0.35, 2),
+            "alert": cause if active else None,
+        })
+    return {"station": station_id, "prototype": True, "rooms": rooms}
+
+
+@app.get("/api/rooms")
+def rooms(station: Optional[str] = None) -> Dict[str, Any]:
+    station_id = STATION_ALIASES.get((station or state["station"]).upper(), state["station"])
+    return _room_payload(station_id)
+
+
+@app.get("/api/rooms/{room_id}")
+def room(room_id: str) -> Dict[str, Any]:
+    station_id = state["station"]
+    if not any(item[0] == room_id for item in ROOM_BLUEPRINTS[station_id]):
+        return {"station": station_id, "room_id": room_id, "error": "Room not found"}
+    payload = _room_payload(station_id, room_id)
+    return {"station": station_id, "room": next(item for item in payload["rooms"] if item["id"] == room_id)}
+
+
+@app.post("/api/rooms/{room_id}/demo")
+def room_demo(room_id: str, request: RoomDemoRequest) -> Dict[str, Any]:
+    cause = request.cause.upper()
+    if cause not in {"HEATER_FAULT", "POWER_LOSS", "DOOR_OPEN"}:
+        return {"error": "Unsupported demo cause", "supported": ["HEATER_FAULT", "POWER_LOSS", "DOOR_OPEN"]}
+    payload = _room_payload(state["station"], room_id, cause)
+    selected = next((item for item in payload["rooms"] if item["id"] == room_id), None)
+    if selected is None:
+        return {"station": state["station"], "room_id": room_id, "error": "Room not found"}
+    return {"station": state["station"], "simulated": True, "cause": cause, "room": selected}
 
 
 @app.get("/api/ingestion/status")

@@ -3,6 +3,7 @@ import ThreeScene from './components/ThreeScene';
 import TelemetryCard from './components/TelemetryCard';
 import BlueprintModal from './components/BlueprintModal';
 import ArchitectureView from './components/ArchitectureView';
+import RoomOperationsView from './components/RoomOperationsView';
 import { cacheTelemetry, flushDeltas, readCachedTelemetry } from './services/offlineStore';
 import {
   Activity, AlertTriangle, BatteryCharging, Bot, CalendarClock, ChevronDown, CloudSnow,
@@ -319,6 +320,9 @@ export default function App() {
         <button onClick={() => setView('architecture')} className={`architecture-nav flex items-center space-x-2 px-5 py-2 text-[11px] tracking-widest uppercase transition-all duration-300 border ${view === 'architecture' ? 'border-purple-400 text-purple-200 text-glow bg-purple-900/40' : 'border-cyan-900/60 text-cyan-600 hover:text-purple-300 bg-black/40'}`}>
           <Workflow className="w-3.5 h-3.5" /> <span>Architecture</span>
         </button>
+        <button onClick={() => setView('rooms')} className={`architecture-nav flex items-center space-x-2 px-5 py-2 text-[11px] tracking-widest uppercase transition-all duration-300 border ${view === 'rooms' ? 'border-emerald-400 text-emerald-200 text-glow bg-emerald-900/40' : 'border-cyan-900/60 text-cyan-600 hover:text-emerald-300 bg-black/40'}`}>
+          <Thermometer className="w-3.5 h-3.5" /> <span>Room Twin</span>
+        </button>
       </div>
 
       {/* ─────────────────────────────────────────────────────────
@@ -405,7 +409,9 @@ export default function App() {
       {/* ─────────────────────────────────────────────────────────
           MODE 1: AR SPATIAL TWIN
       ───────────────────────────────────────────────────────── */}
-      {view === 'architecture' ? (
+      {view === 'rooms' ? (
+        <RoomOperationsView station={station} />
+      ) : view === 'architecture' ? (
         <ArchitectureView station={station} telemetry={telemetry} activeScenario={activeScenario} />
       ) : view === 'twin' ? (
         <>

@@ -23,7 +23,7 @@ const layers = [
     subtitle: 'DIGITAL TWIN',
     icon: Boxes,
     color: 'emerald',
-    items: ['Three.js station model', 'Causal telemetry graph', 'Simulation timeline', 'Anomaly detection'],
+    items: ['Three.js station model', '7-room asset graph', 'Simulation timeline', 'Anomaly detection'],
     status: 'TWIN // IN SYNC'
   },
   {

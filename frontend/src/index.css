@@ -130,6 +130,22 @@ body, #root {
 .operations-grid { margin-top: 17px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .operations-grid .jarvis-panel { min-width: 0; }
 .machine-dock { display: none; }
+.architecture-scroll-wrap { height: 100vh; overflow-y: auto; padding: 110px 36px 70px; max-width: 1500px; margin: auto; }
+.architecture-heading { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; }
+.architecture-heading h1 { margin: 8px 0 0; font-size: 32px; letter-spacing: 2px; color: #e0f2fe; }
+.architecture-heading h1 em { color: #00d2ff; font-style: normal; }
+.architecture-health { display: flex; align-items: center; gap: 10px; padding: 12px 16px; }
+.architecture-health small, .architecture-health strong { display: block; font-size: 9px; letter-spacing: 1px; }
+.architecture-health small { color: #5b8aa0; }.architecture-health strong { color: #34d399; margin-top: 4px; }
+.architecture-flow { display: flex; align-items: stretch; gap: 12px; }
+.architecture-layer { flex: 1; min-width: 0; padding: 16px; }
+.architecture-layer-head { display: flex; gap: 10px; align-items: center; color: #67e8f9; }
+.architecture-layer-head strong, .architecture-layer-head small { display: block; letter-spacing: 1px; }.architecture-layer-head strong { font-size: 10px; }.architecture-layer-head small { color: #5b8aa0; font-size: 8px; margin-top: 4px; }
+.architecture-status { margin: 18px 0 12px; font-size: 8px; color: #34d399; letter-spacing: 1px; }
+.architecture-layer ul { list-style: none; margin: 0; padding: 0; color: #9bc0cf; font-size: 9px; line-height: 2; }.architecture-layer li::before { content: '▸'; color: #00d2ff; margin-right: 7px; }
+.architecture-layer.purple { border-color: rgba(167,139,250,.6); }.architecture-layer.purple .architecture-layer-head { color: #c4b5fd; }.architecture-layer.emerald { border-color: rgba(52,211,153,.6); }.architecture-layer.emerald .architecture-layer-head { color: #6ee7b7; }.architecture-layer.amber { border-color: rgba(251,191,36,.6); }.architecture-layer.amber .architecture-layer-head { color: #fcd34d; }
+.architecture-arrow { align-self: center; color: #00d2ff; flex: 0 0 auto; }
+.architecture-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 17px; margin-top: 20px; }.architecture-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 18px; }.architecture-metrics small, .architecture-metrics strong { display: block; }.architecture-metrics small { color: #5b8aa0; font-size: 8px; }.architecture-metrics strong { color: #a5f3fc; font-size: 18px; margin-top: 7px; }.architecture-note { color: #8db3c2; font-size: 10px; line-height: 1.8; padding: 18px; }
 @keyframes alert-pulse { from { opacity: .86; } to { opacity: 1; } }
 
 /* Phone layout: preserve the HUD while allowing every surface to fit the viewport. */
@@ -144,6 +160,7 @@ body, #root {
   .polar-app .top-6.left-8 { transform: scale(.82); transform-origin: top left; }
   .polar-app .top-6.left-1\/2 { top: 74px; width: calc(100% - 24px); left: 12px; transform: none; justify-content: center; gap: 6px; }
   .polar-app .top-6.left-1\/2 button { min-width: 0; flex: 1; padding: 8px 6px; font-size: 8px; white-space: nowrap; }
+  .polar-app .top-6.left-1\/2 .architecture-nav { display: none; }
   .polar-app .top-6.right-8 { top: 10px; }
   .polar-app .top-6.right-8 > div { gap: 7px; }
   .polar-app .top-6.right-8 .jarvis-panel { padding: 7px 8px; font-size: 8px; }
@@ -195,6 +212,10 @@ body, #root {
   .dashboard-scroll-wrap .causal-panel { overflow: hidden; }
   .dashboard-scroll-wrap .whatif-actions { padding: 10px; }
   .dashboard-scroll-wrap .mesh-stats { padding: 10px; }
+  .architecture-scroll-wrap { padding: 118px 12px 32px; }
+  .architecture-heading { display: block; margin-bottom: 18px; }.architecture-heading h1 { font-size: 22px; }
+  .architecture-health { margin-top: 14px; width: fit-content; }.architecture-flow { display: grid; gap: 8px; }.architecture-arrow { transform: rotate(90deg); justify-self: center; }
+  .architecture-grid { grid-template-columns: 1fr; gap: 10px; }.architecture-layer { padding: 12px; }
 }
 
 @media (max-width: 390px) {

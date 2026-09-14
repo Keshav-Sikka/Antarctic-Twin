@@ -2,11 +2,12 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ThreeScene from './components/ThreeScene';
 import TelemetryCard from './components/TelemetryCard';
 import BlueprintModal from './components/BlueprintModal';
+import ArchitectureView from './components/ArchitectureView';
 import { cacheTelemetry, flushDeltas, readCachedTelemetry } from './services/offlineStore';
 import {
   Activity, AlertTriangle, BatteryCharging, Bot, CalendarClock, ChevronDown, CloudSnow,
   ClipboardList, FileText, Gauge, Globe2, LayoutDashboard, Layers, Map, Network, Pause, Play, Radio,
-  ShieldCheck, Snowflake, Thermometer, Truck, UserCog, Users, Zap, ShieldAlert
+  ShieldCheck, Snowflake, Thermometer, Truck, UserCog, Users, Zap, ShieldAlert, Workflow
 } from 'lucide-react';
 
 const API = 'http://localhost:8000';
@@ -315,6 +316,9 @@ export default function App() {
         <button onClick={() => setView('dashboard')} className={`flex items-center space-x-2 px-5 py-2 text-[11px] tracking-widest uppercase transition-all duration-300 border ${view === 'dashboard' ? 'border-cyan-400 text-cyan-300 text-glow bg-cyan-900/40 shadow-[0_0_15px_rgba(0,210,255,0.3)]' : 'border-cyan-900/60 text-cyan-600 hover:text-cyan-400 bg-black/40'}`}>
           <LayoutDashboard className="w-3.5 h-3.5" /> <span>Data Core</span>
         </button>
+        <button onClick={() => setView('architecture')} className={`architecture-nav flex items-center space-x-2 px-5 py-2 text-[11px] tracking-widest uppercase transition-all duration-300 border ${view === 'architecture' ? 'border-purple-400 text-purple-200 text-glow bg-purple-900/40' : 'border-cyan-900/60 text-cyan-600 hover:text-purple-300 bg-black/40'}`}>
+          <Workflow className="w-3.5 h-3.5" /> <span>Architecture</span>
+        </button>
       </div>
 
       {/* ─────────────────────────────────────────────────────────
@@ -401,7 +405,9 @@ export default function App() {
       {/* ─────────────────────────────────────────────────────────
           MODE 1: AR SPATIAL TWIN
       ───────────────────────────────────────────────────────── */}
-      {view === 'twin' ? (
+      {view === 'architecture' ? (
+        <ArchitectureView station={station} telemetry={telemetry} activeScenario={activeScenario} />
+      ) : view === 'twin' ? (
         <>
           {urgentAlert && (
             <div className={`emergency-alert-popup ${urgentAlert.severity === 'CRITICAL' ? 'critical' : 'warning'}`} role="alert">

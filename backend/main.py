@@ -573,6 +573,47 @@ def mesh() -> Dict[str, Any]:
     return {"station": state["station"], **copy.deepcopy(state["offline_mesh"])}
 
 
+@app.get("/api/architecture")
+def architecture_status() -> Dict[str, Any]:
+    """Expose the four-layer digital-twin reference stack for operators."""
+    return {
+        "station": state["station"],
+        "layers": [
+            {"id": "acquisition", "name": "Data Acquisition", "protocols": ["MQTT", "BLE", "edge sensors"], "status": "LIVE", "signal_count": 42},
+            {"id": "integration", "name": "Integration / Communication", "protocols": ["WebSocket", "Delta Sync", "IndexedDB"], "status": "SYNC", "bandwidth_kbps": 256},
+            {"id": "twin", "name": "Virtual Representation", "protocols": ["Three.js", "Causal Graph", "Simulation"], "status": "IN_SYNC", "asset_count": len(state.get("machines", {}))},
+            {"id": "applications", "name": "Control / Applications", "protocols": ["Data Core", "Alerts", "Directives"], "status": "READY", "role_views": 3},
+        ],
+        "feedback_loop": ["telemetry", "normalized_state", "twin_update", "recommendation", "operator_directive"],
+        "simulation": {"active_scenario": state.get("active_scenario", "NOMINAL"), "offline_first": True},
+    }
+
+
+@app.get("/api/ingestion/status")
+def ingestion_status() -> Dict[str, Any]:
+    return {
+        "station": state["station"],
+        "transport": "MQTT / WebSocket bridge (prototype)",
+        "edge_node": state.get("offline_mesh", {}).get("mesh_id", "polar-mesh"),
+        "connected_sensors": 42,
+        "last_packet": datetime.now(timezone.utc).isoformat(),
+        "queue_depth": state.get("offline_mesh", {}).get("queued_deltas", 0),
+        "mode": "OFFLINE_FIRST",
+    }
+
+
+@app.get("/api/dataops/status")
+def dataops_status() -> Dict[str, Any]:
+    return {
+        "schema": "PolarCore Telemetry Schema v2",
+        "normalization": "ACTIVE",
+        "domains": len(state.get("domains", {})),
+        "last_validation": datetime.now(timezone.utc).isoformat(),
+        "quality": "GOOD",
+        "retention": "EDGE CACHE + STATION DATABASE",
+    }
+
+
 def _weather_payload(live: bool = False) -> Dict[str, Any]:
     fallback = {
         "station": state["station"],
